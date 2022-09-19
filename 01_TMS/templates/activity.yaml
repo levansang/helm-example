@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.name }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "01_TMS.labels" . | nindent 4 }}
+    version: {{ .Values.image.tag }}
+    app: {{ .Values.name }}
+    tier: computing
+    env: {{ .Values.env }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "01_TMS.selectorLabels" . | nindent 6 }}
+      app: {{ .Values.name }}
+      tier: computing
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.name }}
+        tier: computing
+    spec:
+      hostAliases:
+      - ip: "10.10.90.100"
+        hostnames:
+        - "stg-internal.eteachergroup.com"
+      containers:
+      - name: {{ .Values.name }}-container
+        image: 883543950452.dkr.ecr.eu-west-1.amazonaws.com/siriusmicroservices{{ .Values.name }}:{{ .Values.image.tag }}
+        ports:
+        - name: http-{{ .Values.name }}
+          containerPort: 80
+        - name: https-{{ .Values.name }}
+          containerPort: 443
+        imagePullPolicy: Always
+        resources:
+          {{- toYaml .Values.resources | nindent 12 }}
